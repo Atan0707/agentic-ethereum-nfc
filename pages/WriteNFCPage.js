@@ -54,21 +54,21 @@ function WriteNFCPage({navigation}) {
         try {
           // For debugging
           console.log('Provider Context:', providerCtx);
-          
+
           // Use BrowserProvider instead of Web3Provider for ethers v6
           const ethersProvider = new ethers.BrowserProvider(providerCtx);
           console.log('Ethers Provider created');
-          
+
           const signer = await ethersProvider.getSigner();
           console.log('Signer obtained:', await signer.getAddress());
-          
+
           const contract = new ethers.Contract(
             CONTRACT_ADDRESS,
             ContractABI,
             signer
           );
           console.log('Contract created');
-          
+
           setBaseContract(contract);
         } catch (error) {
           console.error('Detailed error:', error);
@@ -113,10 +113,47 @@ function WriteNFCPage({navigation}) {
       const receipt = await tx.wait();
       console.log('Transaction receipt:', receipt);
 
-      const emitHash = receipt.logs[0].args.hash;
-      const emitTokenId = receipt.logs[0].args.tokenId;
-      setClaimHash(emitHash);
-      Alert.alert('Success', `Pokemon NFT created with ID: ${emitTokenId}`);
+      // Parse the event logs
+      for (const log of receipt.logs) {
+        try {
+          const parsedLog = baseContract.interface.parseLog({
+            topics: log.topics,
+            data: log.data,
+          });
+
+          console.log('Parsed event:', parsedLog?.name);
+
+          if (parsedLog?.name === 'PokemonCreated') {
+            // The event has indexed tokenId and non-indexed claimHash
+            const tokenId = parsedLog.args[0]; // First argument (indexed)
+            const eventClaimHash = parsedLog.args[1]; // Second argument (non-indexed)
+
+            console.log('TokenId:', tokenId.toString());
+            console.log('ClaimHash:', eventClaimHash);
+
+            setClaimHash(eventClaimHash);
+            Alert.alert('Success', `Pokemon NFT created with ID: ${tokenId}`);
+            return;
+          }
+        } catch (e) {
+          console.log('Error parsing specific log:', e);
+          // Try next log
+        }
+      }
+
+      // If we get here, let's log what we received
+      console.log('All event names found:', receipt.logs.map(log => {
+        try {
+          return baseContract.interface.parseLog({
+            topics: log.topics,
+            data: log.data,
+          })?.name;
+        } catch (e) {
+          return 'unparseable';
+        }
+      }));
+
+      Alert.alert('Warning', 'Transaction successful but event not found');
     } catch (error) {
       console.error('Error creating Pokemon NFT:', error);
       Alert.alert('Error', 'Failed to create Pokemon NFT. Make sure your wallet is connected and you have enough funds.');
@@ -284,3 +321,4 @@ const styles = StyleSheet.create({
 });
 
 export default WriteNFCPage;
+
