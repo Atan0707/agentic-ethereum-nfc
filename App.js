@@ -20,19 +20,24 @@ function App() {
         </View>
         <Stack.Navigator
           initialRouteName="WriteNFC"
-          screenOptions={{headerShown: true}}>
-          <Stack.Screen 
-            name="Write NFC" 
+          screenOptions={{
+            headerShown: true,
+            headerTitleStyle: {
+              color: 'black',
+            },
+          }}>
+          <Stack.Screen
+            name="Write NFC"
             component={WriteNFCPage}
             options={{
-              title: 'Write to NFC Tag'
+              title: 'Write to NFC Tag',
             }}
           />
-          <Stack.Screen 
-            name="Read NFC" 
+          <Stack.Screen
+            name="Read NFC"
             component={ReadNFCPage}
             options={{
-              title: 'Read NFC Tag'
+              title: 'Read NFC Tag',
             }}
           />
         </Stack.Navigator>

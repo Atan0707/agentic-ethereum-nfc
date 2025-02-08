@@ -40,7 +40,8 @@ const WriteNFCPage = () => {
         value={text}
         onChangeText={setText}
       />
-      <Button title="Write Text to NFC" onPress={writeText} />
+      <Button style={styles.button} title="Write Text to NFC" onPress={writeText} />
+
 
       <TextInput
         style={styles.input}
@@ -48,8 +49,9 @@ const WriteNFCPage = () => {
         value={url}
         onChangeText={setUrl}
       />
-      <Button title="Write URL to NFC" onPress={writeUrl} />
+      <Button style={styles.button} title="Write URL to NFC" onPress={writeUrl} />
     </View>
+
   );
 };
 
@@ -64,7 +66,13 @@ const styles = StyleSheet.create({
     padding: 10,
     marginVertical: 10,
     borderRadius: 5,
+    color: 'black',
+  },
+  button: {
+    backgroundColor: 'black',
+    color: 'white',
   },
 });
 
-export default WriteNFCPage; 
+
+export default WriteNFCPage;

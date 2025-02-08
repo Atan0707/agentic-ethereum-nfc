@@ -10,6 +10,12 @@ export const nfcManager = {
       // Request NFC technology
       await NfcManager.requestTechnology(NfcTech.Ndef);
 
+      // Get the tag and check if it exists
+      const tag = await NfcManager.getTag();
+      if (!tag) {
+        throw new Error('No tag found');
+      }
+
       // Create text record
       const bytes = await NfcManager.ndefHandler.getNdefMessage([{
         recordType: 'text',
@@ -32,11 +38,10 @@ export const nfcManager = {
   writeNFCUrl: async (url) => {
     try {
       await NfcManager.requestTechnology(NfcTech.Ndef);
-      
       // Create URL record
       const bytes = await NfcManager.ndefHandler.getNdefMessage([{
         recordType: 'uri',
-        uri: url
+        uri: url,
       }]);
 
       await NfcManager.ndefHandler.writeNdefMessage(bytes);
@@ -57,7 +62,7 @@ export const nfcManager = {
       const ndefMessage = await NfcManager.ndefHandler.getNdefMessage();
       return {
         tag,
-        ndefMessage
+        ndefMessage,
       };
     } catch (error) {
       console.warn('Error reading NFC:', error);
@@ -65,5 +70,5 @@ export const nfcManager = {
     } finally {
       NfcManager.cancelTechnologyRequest();
     }
-  }
-}; 
+  },
+};
