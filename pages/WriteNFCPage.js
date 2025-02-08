@@ -1,124 +1,147 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import {
   View,
-  TextInput,
-  Button,
+  Text,
+  TouchableOpacity,
   StyleSheet,
   Alert,
-  Modal,
-  Text,
   ActivityIndicator,
+  TextInput,
 } from 'react-native';
-import { nfcManager } from '../utils/nfcManager';
+import NfcManager, {NfcTech, Ndef} from 'react-native-nfc-manager';
 
-const WriteNFCPage = () => {
+NfcManager.start();
+
+function WriteNFCPage({navigation}) {
+  const [loading, setLoading] = useState(false);
   const [text, setText] = useState('');
   const [url, setUrl] = useState('');
-  const [isScanning, setIsScanning] = useState(false);
 
-  const writeText = async () => {
+  async function writeNdefText() {
     if (!text) {
       Alert.alert('Error', 'Please enter text to write');
       return;
     }
-    setIsScanning(true);
-    const result = await nfcManager.writeNFCText(text);
-    setIsScanning(false);
-    if (result) {
-      Alert.alert('Success', 'Text written to NFC tag');
-    } else {
-      Alert.alert('Error', 'Failed to write to NFC tag');
-    }
-  };
 
-  const writeUrl = async () => {
+    let result = false;
+    try {
+      setLoading(true);
+      await NfcManager.requestTechnology(NfcTech.Ndef);
+      const bytes = Ndef.encodeMessage([Ndef.textRecord(text)]);
+
+      if (bytes) {
+        await NfcManager.ndefHandler.writeNdefMessage(bytes);
+        result = true;
+        Alert.alert('Success', 'Text written to NFC tag');
+      }
+    } catch (ex) {
+      console.warn(ex);
+      Alert.alert('Error', 'Failed to write to NFC tag');
+    } finally {
+      NfcManager.cancelTechnologyRequest();
+      setLoading(false);
+    }
+    return result;
+  }
+
+  async function writeNdefUrl() {
     if (!url) {
       Alert.alert('Error', 'Please enter URL to write');
       return;
     }
-    setIsScanning(true);
-    const result = await nfcManager.writeNFCUrl(url);
-    setIsScanning(false);
-    if (result) {
-      Alert.alert('Success', 'URL written to NFC tag');
-    } else {
+
+    let result = false;
+    try {
+      setLoading(true);
+      await NfcManager.requestTechnology(NfcTech.Ndef);
+      const bytes = Ndef.encodeMessage([Ndef.uriRecord(url)]);
+
+      if (bytes) {
+        await NfcManager.ndefHandler.writeNdefMessage(bytes);
+        result = true;
+        Alert.alert('Success', 'URL written to NFC tag');
+      }
+    } catch (ex) {
+      console.warn(ex);
       Alert.alert('Error', 'Failed to write to NFC tag');
+    } finally {
+      NfcManager.cancelTechnologyRequest();
+      setLoading(false);
     }
-  };
+    return result;
+  }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.mainLayout}>
       <TextInput
         style={styles.input}
         placeholder="Enter text to write"
         value={text}
         onChangeText={setText}
+        placeholderTextColor={'black'}
       />
-      <Button style={styles.button} title="Write Text to NFC" onPress={writeText} />
+      <TouchableOpacity
+        onPress={writeNdefText}
+        style={[styles.button, {backgroundColor: '#c59f59'}]}>
+        <Text style={{color: 'black'}}>Write Text to NFC</Text>
+      </TouchableOpacity>
 
       <TextInput
         style={styles.input}
         placeholder="Enter URL to write"
         value={url}
         onChangeText={setUrl}
+        placeholderTextColor={'black'}
       />
-      <Button style={styles.button} title="Write URL to NFC" onPress={writeUrl} />
+      <TouchableOpacity
+        onPress={writeNdefUrl}
+        style={[styles.button, {backgroundColor: '#c59f59'}]}>
+        <Text style={{color: 'black'}}>Write URL to NFC</Text>
+      </TouchableOpacity>
 
-      <Modal visible={isScanning} transparent animationType="fade">
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.scanTitle}>Scan NFC</Text>
-            <ActivityIndicator size="large" color="#5A4FCF" />
-            <Text style={styles.modalText}>
-              Please hold your NFC tag against the device...
-            </Text>
-          </View>
-        </View>
-      </Modal>
+      <TouchableOpacity
+        style={styles.homeButton}
+        onPress={() => navigation.navigate('Home')}>
+        <Text style={{color: 'white'}}>Back to Home</Text>
+      </TouchableOpacity>
+
+      {loading && <ActivityIndicator size={'large'} color={'#0ca973'} />}
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#fff',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 10,
-    marginBottom: 20,
-    borderRadius: 5,
-  },
-  button: {
-    marginBottom: 20,
-  },
-  modalContainer: {
+  mainLayout: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    backgroundColor: 'white',
+    backgroundColor: '#fff',
     padding: 20,
-    borderRadius: 10,
+  },
+  button: {
+    width: '80%',
+    padding: 15,
+    borderRadius: 8,
     alignItems: 'center',
-    elevation: 5,
-    minWidth: '80%',
-  },
-  modalText: {
-    marginTop: 10,
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  scanTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
     marginBottom: 20,
-    color: '#5A4FCF',
+  },
+  input: {
+    width: '80%',
+    borderWidth: 1,
+    borderColor: 'black',
+    padding: 15,
+    marginBottom: 20,
+    borderRadius: 8,
+    color: 'black',
+  },
+  homeButton: {
+    width: '80%',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    backgroundColor: 'black',
+    borderWidth: 2,
+    borderColor: 'black',
   },
 });
 

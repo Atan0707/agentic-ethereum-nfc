@@ -1,4 +1,4 @@
-import NfcManager, {NfcTech} from 'react-native-nfc-manager';
+import NfcManager, {NfcTech, Ndef} from 'react-native-nfc-manager';
 
 // Initialize NFC Manager
 NfcManager.start();
@@ -10,22 +10,17 @@ export const nfcManager = {
       // Request NFC technology
       await NfcManager.requestTechnology(NfcTech.Ndef);
 
-      // Get the tag and check if it exists
-      const tag = await NfcManager.getTag();
-      if (!tag) {
-        throw new Error('No tag found');
+      // Format the data
+      const bytes = Ndef.encodeMessage([Ndef.textRecord(text)]);
+
+      if (bytes) {
+        const tag = await NfcManager.getTag();
+        if (!tag) throw Error('No tag found');
+        await NfcManager.writeNdefMessage(bytes);
+        return true;
       }
 
-      // Create text record
-      const bytes = await NfcManager.ndefHandler.getNdefMessage([{
-        recordType: 'text',
-        text: text,
-        languageCode: 'en',
-      }]);
-
-      // Write the record
-      await NfcManager.ndefHandler.writeNdefMessage(bytes);
-      return true;
+      return false;
     } catch (error) {
       console.warn('Error writing text to NFC:', error);
       return false;
@@ -38,14 +33,19 @@ export const nfcManager = {
   writeNFCUrl: async (url) => {
     try {
       await NfcManager.requestTechnology(NfcTech.Ndef);
-      // Create URL record
-      const bytes = await NfcManager.ndefHandler.getNdefMessage([{
-        recordType: 'uri',
-        uri: url,
-      }]);
 
-      await NfcManager.ndefHandler.writeNdefMessage(bytes);
-      return true;
+      // Format the URL data
+      const bytes = Ndef.encodeMessage([Ndef.uriRecord(url)]);
+
+      if (bytes) {
+        const tag = await NfcManager.getTag();
+        if (!tag) throw Error('No tag found');
+
+        await NfcManager.writeNdefMessage(bytes);
+        return true;
+      }
+
+      return false;
     } catch (error) {
       console.warn('Error writing URL to NFC:', error);
       return false;
@@ -59,10 +59,10 @@ export const nfcManager = {
     try {
       await NfcManager.requestTechnology(NfcTech.Ndef);
       const tag = await NfcManager.getTag();
-      const ndefMessage = await NfcManager.ndefHandler.getNdefMessage();
+      const ndef = await NfcManager.getNdefMessage();
       return {
         tag,
-        ndefMessage,
+        ndefMessage: ndef,
       };
     } catch (error) {
       console.warn('Error reading NFC:', error);
