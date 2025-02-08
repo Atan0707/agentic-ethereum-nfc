@@ -28,6 +28,7 @@ function WriteNFCPage({navigation}) {
       setLoading(true);
       await NfcManager.requestTechnology(NfcTech.Ndef);
       const bytes = Ndef.encodeMessage([Ndef.textRecord(text)]);
+      console.log('bytes: ', bytes);
 
       if (bytes) {
         await NfcManager.ndefHandler.writeNdefMessage(bytes);
@@ -82,8 +83,8 @@ function WriteNFCPage({navigation}) {
       />
       <TouchableOpacity
         onPress={writeNdefText}
-        style={[styles.button, {backgroundColor: '#c59f59'}]}>
-        <Text style={{color: 'black'}}>Write Text to NFC</Text>
+        style={[styles.button, styles.goldButton]}>
+        <Text style={styles.buttonText}>Write Text to NFC</Text>
       </TouchableOpacity>
 
       <TextInput
@@ -95,8 +96,8 @@ function WriteNFCPage({navigation}) {
       />
       <TouchableOpacity
         onPress={writeNdefUrl}
-        style={[styles.button, {backgroundColor: '#c59f59'}]}>
-        <Text style={{color: 'black'}}>Write URL to NFC</Text>
+        style={[styles.button, styles.goldButton]}>
+        <Text style={styles.buttonText}>Write URL to NFC</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -142,6 +143,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'black',
     borderWidth: 2,
     borderColor: 'black',
+  },
+  goldButton: {
+    backgroundColor: '#c59f59',
+  },
+  buttonText: {
+    color: 'black',
   },
 });
 

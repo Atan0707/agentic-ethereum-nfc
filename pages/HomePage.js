@@ -5,15 +5,15 @@ function HomePage({navigation}) {
   return (
     <View style={styles.mainLayout}>
       <TouchableOpacity
-        style={[styles.button, {backgroundColor: '#c59f59'}]}
+        style={[styles.button, styles.goldButton]}
         onPress={() => navigation.navigate('WriteNFC')}>
-        <Text style={{color: 'black'}}>Write NFC Tag</Text>
+        <Text style={styles.buttonText}>Write NFC Tag</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.button, {backgroundColor: '#c59f59'}]}
+        style={[styles.button, styles.goldButton]}
         onPress={() => navigation.navigate('ReadNFC')}>
-        <Text style={{color: 'black'}}>Read NFC Tag</Text>
+        <Text style={styles.buttonText}>Read NFC Tag</Text>
       </TouchableOpacity>
     </View>
   );
@@ -33,6 +33,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 20,
+  },
+  goldButton: {
+    backgroundColor: '#c59f59',
+  },
+  buttonText: {
+    color: 'black',
   },
 });
 
