@@ -1,12 +1,13 @@
 import React, { createContext, useEffect, useState } from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
-import { View, Image, StyleSheet } from 'react-native';
+import { View, Image, StyleSheet, Platform } from 'react-native';
 import { useWalletConnectModal, WalletConnectModal } from '@walletconnect/modal-react-native';
 import WriteNFCPage from './pages/WriteNFCPage';
 import ReadNFCPage from './pages/ReadNFCPage';
 import HomePage from './pages/HomePage';
 import Navbar from './components/Navbar';
+import NetInfo from '@react-native-community/netinfo';
 
 // Create WalletContext
 export const WalletCtx = createContext();
@@ -25,6 +26,11 @@ const providerMetadata = {
     universal: 'YOUR_APP_UNIVERSAL_LINK.com',
   },
 };
+
+// Add this before the App component
+if (Platform.OS === 'android' || Platform.OS === 'ios') {
+  global.NetInfo = NetInfo;
+}
 
 function App() {
   const [addressCtx, setAddressCtx] = useState('0x');
