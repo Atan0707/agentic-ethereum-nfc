@@ -1,4 +1,4 @@
-import React, {useState, useContext} from 'react';
+import React, {useContext, useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,6 @@ import NfcManager, {NfcTech, Ndef} from 'react-native-nfc-manager';
 import {ethers} from 'ethers';
 import {WalletCtx} from '../App';
 import ContractABI from '../contract/ABI.json';
-import {Picker} from '@react-native-picker/picker';
 
 NfcManager.start();
 
@@ -38,9 +37,9 @@ const POKEMON_TYPE = {
 };
 
 function WriteNFCPage({navigation}) {
+  const {providerCtx, isConnectedCtx} = useContext(WalletCtx);
   const [loading, setLoading] = useState(false);
-  const {providerCtx, addressCtx} = useContext(WalletCtx);
-
+  const [baseContract, setBaseContract] = useState(null);
   // NFT creation states
   const [pokemonName, setPokemonName] = useState('');
   const [rarity, setRarity] = useState(RARITY.COMMON);
@@ -49,7 +48,53 @@ function WriteNFCPage({navigation}) {
   const [tokenUri, setTokenUri] = useState('');
   const [claimHash, setClaimHash] = useState('');
 
+  useEffect(() => {
+    if (isConnectedCtx && providerCtx) {
+      const initializeContract = async () => {
+        try {
+          // For debugging
+          console.log('Provider Context:', providerCtx);
+          
+          // Use BrowserProvider instead of Web3Provider for ethers v6
+          const ethersProvider = new ethers.BrowserProvider(providerCtx);
+          console.log('Ethers Provider created');
+          
+          const signer = await ethersProvider.getSigner();
+          console.log('Signer obtained:', await signer.getAddress());
+          
+          const contract = new ethers.Contract(
+            CONTRACT_ADDRESS,
+            ContractABI,
+            signer
+          );
+          console.log('Contract created');
+          
+          setBaseContract(contract);
+        } catch (error) {
+          console.error('Detailed error:', error);
+          Alert.alert(
+            'Wallet Error',
+            'Failed to initialize contract. Please make sure your wallet is properly connected.'
+          );
+        }
+      };
+      initializeContract();
+    } else {
+      setBaseContract(null);
+    }
+  }, [isConnectedCtx, providerCtx]);
+
   async function createPokemonNFT() {
+    if (!isConnectedCtx || !providerCtx) {
+      Alert.alert('Error', 'Please connect your wallet first');
+      return;
+    }
+
+    if (!baseContract) {
+      Alert.alert('Error', 'Contract not initialized. Please try again.');
+      return;
+    }
+
     if (!pokemonName || !behavior || !tokenUri) {
       Alert.alert('Error', 'Please fill all fields');
       return;
@@ -57,12 +102,7 @@ function WriteNFCPage({navigation}) {
 
     try {
       setLoading(true);
-
-      const ethersProvider = new ethers.BrowserProvider(providerCtx);
-      const signer = await ethersProvider.getSigner();
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, ContractABI, signer);
-
-      const tx = await contract.createPokemon(
+      const tx = await baseContract.createPokemon(
         pokemonName,
         rarity,
         behavior,
@@ -71,18 +111,15 @@ function WriteNFCPage({navigation}) {
       );
 
       const receipt = await tx.wait();
+      console.log('Transaction receipt:', receipt);
 
-      // Find the PokemonCreated event
-      const event = receipt.events.find(e => e.event === 'PokemonCreated');
-      if (event) {
-        const [tokenId, hash] = event.args;
-        setClaimHash(hash);
-        Alert.alert('Success', `Pokemon NFT created with ID: ${tokenId}`);
-        return hash; // We'll use this hash to write to NFC
-      }
+      const emitHash = receipt.logs[0].args.hash;
+      const emitTokenId = receipt.logs[0].args.tokenId;
+      setClaimHash(emitHash);
+      Alert.alert('Success', `Pokemon NFT created with ID: ${emitTokenId}`);
     } catch (error) {
       console.error('Error creating Pokemon NFT:', error);
-      Alert.alert('Error', 'Failed to create Pokemon NFT');
+      Alert.alert('Error', 'Failed to create Pokemon NFT. Make sure your wallet is connected and you have enough funds.');
     } finally {
       setLoading(false);
     }
@@ -117,6 +154,11 @@ function WriteNFCPage({navigation}) {
 
   return (
     <ScrollView contentContainerStyle={styles.mainLayout}>
+      {!isConnectedCtx && (
+        <View style={styles.warningContainer}>
+          <Text style={styles.warningText}>Please connect your wallet first</Text>
+        </View>
+      )}
       <TextInput
         style={styles.input}
         placeholder="Pokemon Name"
@@ -125,32 +167,23 @@ function WriteNFCPage({navigation}) {
         placeholderTextColor={'black'}
       />
 
-      <View style={styles.pickerContainer}>
-        <Picker
-          selectedValue={rarity}
-          onValueChange={setRarity}
-          style={styles.picker}>
-          <Picker.Item label="Common" value={RARITY.COMMON} />
-          <Picker.Item label="Uncommon" value={RARITY.UNCOMMON} />
-          <Picker.Item label="Rare" value={RARITY.RARE} />
-          <Picker.Item label="Epic" value={RARITY.EPIC} />
-          <Picker.Item label="Legendary" value={RARITY.LEGENDARY} />
-        </Picker>
-      </View>
+      <TextInput
+        style={styles.input}
+        placeholder="Rarity (0-4: Common, Uncommon, Rare, Epic, Legendary)"
+        value={rarity.toString()}
+        onChangeText={(text) => setRarity(parseInt(text, 10) || 0)}
+        keyboardType="numeric"
+        placeholderTextColor={'black'}
+      />
 
-      <View style={styles.pickerContainer}>
-        <Picker
-          selectedValue={pokemonType}
-          onValueChange={setPokemonType}
-          style={styles.picker}>
-          <Picker.Item label="Fire" value={POKEMON_TYPE.FIRE} />
-          <Picker.Item label="Water" value={POKEMON_TYPE.WATER} />
-          <Picker.Item label="Grass" value={POKEMON_TYPE.GRASS} />
-          <Picker.Item label="Electric" value={POKEMON_TYPE.ELECTRIC} />
-          <Picker.Item label="Psychic" value={POKEMON_TYPE.PSYCHIC} />
-          <Picker.Item label="Normal" value={POKEMON_TYPE.NORMAL} />
-        </Picker>
-      </View>
+      <TextInput
+        style={styles.input}
+        placeholder="Type (0-5: Fire, Water, Grass, Electric, Psychic, Normal)"
+        value={pokemonType.toString()}
+        onChangeText={(text) => setPokemonType(parseInt(text, 10) || 0)}
+        keyboardType="numeric"
+        placeholderTextColor={'black'}
+      />
 
       <TextInput
         style={styles.input}
@@ -168,11 +201,13 @@ function WriteNFCPage({navigation}) {
         placeholderTextColor={'black'}
       />
 
-      <TouchableOpacity
-        onPress={createPokemonNFT}
-        style={[styles.button, styles.goldButton]}>
-        <Text style={styles.buttonText}>Create Pokemon NFT</Text>
-      </TouchableOpacity>
+      {!claimHash && isConnectedCtx && baseContract && (
+        <TouchableOpacity
+          onPress={createPokemonNFT}
+          style={[styles.button, styles.goldButton]}>
+          <Text style={styles.buttonText}>Create Pokemon NFT</Text>
+        </TouchableOpacity>
+      )}
 
       {claimHash && (
         <TouchableOpacity
@@ -232,20 +267,19 @@ const styles = StyleSheet.create({
   buttonText: {
     color: 'black',
   },
-  pickerContainer: {
-    width: '80%',
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'black',
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
   homeButtonText: {
     color: 'white',
   },
-  picker: {
-    width: '100%',
-    color: 'black',
+  warningContainer: {
+    padding: 10,
+    backgroundColor: '#ffebee',
+    borderRadius: 8,
+    marginBottom: 20,
+    width: '80%',
+  },
+  warningText: {
+    color: '#c62828',
+    textAlign: 'center',
   },
 });
 
