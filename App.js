@@ -11,18 +11,18 @@ function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Home">
-        <Stack.Screen 
-          name="Home" 
+        <Stack.Screen
+          name="Home"
           component={HomePage}
           options={{title: 'Home'}}
         />
-        <Stack.Screen 
-          name="WriteNFC" 
+        <Stack.Screen
+          name="WriteNFC"
           component={WriteNFCPage}
           options={{title: 'Write NFC'}}
         />
-        <Stack.Screen 
-          name="ReadNFC" 
+        <Stack.Screen
+          name="ReadNFC"
           component={ReadNFCPage}
           options={{title: 'Read NFC'}}
         />
